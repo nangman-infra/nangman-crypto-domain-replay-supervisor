@@ -19,12 +19,21 @@ RUN --mount=type=secret,id=domain_replay_manifest,required=false \
         cp ./config/domain-replay-manifest.example.json ./config/domain-replay-manifest.dev.json; \
     fi
 
-RUN cargo build --release --locked
+ARG CARGO_BUILD_PROFILE=release
+RUN if [ "$CARGO_BUILD_PROFILE" = "release" ]; then \
+        cargo build --release --locked; \
+    elif [ "$CARGO_BUILD_PROFILE" = "debug" ]; then \
+        cargo build --locked; \
+    else \
+        echo "unsupported CARGO_BUILD_PROFILE=$CARGO_BUILD_PROFILE" >&2; \
+        exit 1; \
+    fi
 
 FROM gcr.io/distroless/cc-debian12:nonroot AS runtime
 
+ARG CARGO_BUILD_PROFILE=release
 COPY --from=builder --chown=nonroot:nonroot \
-    /app/target/release/domain-replay-supervisor-app \
+    /app/target/${CARGO_BUILD_PROFILE}/domain-replay-supervisor-app \
     /usr/local/bin/domain-replay-supervisor-app
 COPY --from=builder --chown=nonroot:nonroot \
     /app/config/domain-replay-manifest.dev.json \
