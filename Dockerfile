@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 FROM public.ecr.aws/docker/library/rust:1.94-bookworm AS builder
 
 WORKDIR /app
@@ -8,7 +10,14 @@ RUN apt-get update \
 
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
-COPY config ./config
+COPY config/domain-replay-manifest.example.json ./config/domain-replay-manifest.example.json
+
+RUN --mount=type=secret,id=domain_replay_manifest,required=false \
+    if [ -f /run/secrets/domain_replay_manifest ]; then \
+        cp /run/secrets/domain_replay_manifest ./config/domain-replay-manifest.dev.json; \
+    else \
+        cp ./config/domain-replay-manifest.example.json ./config/domain-replay-manifest.dev.json; \
+    fi
 
 RUN cargo build --release --locked
 
@@ -18,7 +27,7 @@ COPY --from=builder --chown=nonroot:nonroot \
     /app/target/release/domain-replay-supervisor-app \
     /usr/local/bin/domain-replay-supervisor-app
 COPY --from=builder --chown=nonroot:nonroot \
-    /app/config/domain-replay-manifest.example.json \
+    /app/config/domain-replay-manifest.dev.json \
     /opt/nangman-crypto/domains/runtime/domain-replay-manifest.dev.json
 
 USER nonroot:nonroot
