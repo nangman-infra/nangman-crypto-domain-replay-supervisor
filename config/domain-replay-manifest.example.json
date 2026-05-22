@@ -1,0 +1,52 @@
+{
+  "schema_version": "domain_replay_manifest_v1",
+  "manifest_id": "nangman-crypto-dev-domain-replay-v1",
+  "authority_migration_records": [
+    {
+      "authority_scope": "control-plane-lite:domain-replay-supervisor",
+      "from_app": null,
+      "to_app": "domain-replay-supervisor-app",
+      "migration_reason": "initial_s3_artifact_run_registry_owner_for_stateless_replay_repair"
+    }
+  ],
+  "domains": [
+    {
+      "domain_id": "intel-candidate",
+      "target_app": "intel-candidate-app",
+      "target_mode": "replay",
+      "input_bucket": "<structured-intel-l1-bucket>",
+      "input_region": "ap-northeast-2",
+      "input_endpoint": null,
+      "input_force_path_style": false,
+      "input_prefixes": ["structured-intel-packet/schema=structured_intel_packet_v1/"],
+      "input_suffixes": [".json", ".jsonl"],
+      "max_keys_per_prefix": 10000,
+      "replay_triggers": [
+        "force_all",
+        "candidate_app_version_changed",
+        "scoring_policy_version_changed",
+        "structured_packet_schema_changed",
+        "market_reference_policy_changed"
+      ],
+      "output_bucket": "<intel-candidate-bucket>",
+      "output_region": "ap-northeast-2",
+      "output_report_prefix": "candidate-replay-report",
+      "command_template": [
+        "/usr/local/bin/intel-candidate-replay-worker",
+        "--nats-url",
+        "nats://<private-nats-host>:4222",
+        "--input-s3-bucket",
+        "{input_bucket}",
+        "--output-s3-bucket",
+        "{output_bucket}",
+        "--market-l1-s3-bucket",
+        "<market-l1-bucket>",
+        "--policy-file",
+        "/opt/nangman-crypto/domains/intel-candidate/policies/scoring-policy.v1.json",
+        "{repeat_input_prefixes}",
+        "--replay-report-prefix",
+        "{output_report_prefix}"
+      ]
+    }
+  ]
+}

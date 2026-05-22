@@ -1,0 +1,50 @@
+{
+  "family": "td-nangman-dev-domain-replay-supervisor-apn2",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "runtimePlatform": {
+    "cpuArchitecture": "ARM64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "executionRoleArn": "arn:aws:iam::<aws-account-id>:role/role-nangman-dev-domain-replay-supervisor-exec",
+  "taskRoleArn": "arn:aws:iam::<aws-account-id>:role/role-nangman-dev-domain-replay-supervisor-task",
+  "containerDefinitions": [
+    {
+      "name": "domain-replay-supervisor-app",
+      "image": "REPLACE_WITH_ECR_IMAGE_URI",
+      "essential": true,
+      "stopTimeout": 120,
+      "readonlyRootFilesystem": true,
+      "linuxParameters": {
+        "capabilities": {
+          "drop": ["ALL"]
+        }
+      },
+      "command": [
+        "--manifest-file",
+        "/opt/nangman-crypto/domains/runtime/domain-replay-manifest.dev.json",
+        "--changed-trigger",
+        "scoring_policy_version_changed",
+        "--output-s3-bucket",
+        "nangman-crypto-dev-research-<account-suffix>",
+        "--output-s3-prefix",
+        "domain-replay-supervisor",
+        "--output-s3-region",
+        "ap-northeast-2"
+      ],
+      "environment": [
+        { "name": "AWS_REGION", "value": "ap-northeast-2" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/aws/ecs/log-nangman-dev-domain-replay-supervisor-apn2",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
