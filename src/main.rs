@@ -679,6 +679,11 @@ fn validate_manifest(manifest: &DomainReplayManifest) -> AppResult<()> {
                 domain.domain_id
             )));
         }
+        validate_s3_runtime_config(
+            &format!("domain {} input", domain.domain_id),
+            domain.input_endpoint.as_deref(),
+            domain.input_force_path_style,
+        )?;
     }
     for record in &manifest.authority_migration_records {
         if record.authority_scope.trim().is_empty()
@@ -788,7 +793,28 @@ fn parse_args(values: impl Iterator<Item = String>) -> AppResult<Option<Args>> {
             "--output-s3-bucket and --output-s3-prefix are required for S3 output",
         ));
     }
+    if let Some(s3) = args.output_s3.as_ref() {
+        validate_s3_runtime_config("--output-s3", s3.endpoint.as_deref(), s3.force_path_style)?;
+    }
     Ok(Some(args))
+}
+
+fn validate_s3_runtime_config(
+    label: &str,
+    endpoint: Option<&str>,
+    force_path_style: bool,
+) -> AppResult<()> {
+    if endpoint.is_some_and(|value| !value.trim().is_empty()) {
+        return Err(AppError::config(format!(
+            "{label} custom endpoint is unsupported; use AWS S3 with IAM"
+        )));
+    }
+    if force_path_style {
+        return Err(AppError::config(format!(
+            "{label} path-style endpoint mode is unsupported; use AWS S3 with IAM"
+        )));
+    }
+    Ok(())
 }
 
 fn absolute_path_arg(value: Option<String>, message: &str) -> AppResult<PathBuf> {
@@ -1017,6 +1043,63 @@ mod tests {
                 "structured-intel-packet/schema=structured_intel_packet_v1/"
             ]
         );
+    }
+
+    #[test]
+    fn manifest_rejects_custom_s3_endpoint_runtime_config() {
+        let mut manifest = DomainReplayManifest {
+            schema_version: MANIFEST_SCHEMA_VERSION.to_owned(),
+            manifest_id: "manifest_001".to_owned(),
+            domains: vec![domain()],
+            authority_migration_records: Vec::new(),
+        };
+        manifest.domains[0].input_endpoint = Some("https://s3.nangman.cloud".to_owned());
+
+        let err = validate_manifest(&manifest).unwrap_err().to_string();
+
+        assert!(err.contains("custom endpoint is unsupported"));
+        assert!(err.contains("AWS S3 with IAM"));
+    }
+
+    #[test]
+    fn manifest_rejects_path_style_s3_runtime_config() {
+        let mut manifest = DomainReplayManifest {
+            schema_version: MANIFEST_SCHEMA_VERSION.to_owned(),
+            manifest_id: "manifest_001".to_owned(),
+            domains: vec![domain()],
+            authority_migration_records: Vec::new(),
+        };
+        manifest.domains[0].input_force_path_style = true;
+
+        let err = validate_manifest(&manifest).unwrap_err().to_string();
+
+        assert!(err.contains("path-style endpoint mode is unsupported"));
+        assert!(err.contains("AWS S3 with IAM"));
+    }
+
+    #[test]
+    fn parse_rejects_custom_output_s3_endpoint_runtime_config() {
+        let err = parse_args(
+            [
+                "--manifest-file",
+                "/tmp/domain-replay-manifest.json",
+                "--changed-trigger",
+                "force_all",
+                "--output-s3-bucket",
+                "control-plane-bucket",
+                "--output-s3-prefix",
+                "domain-replay-supervisor",
+                "--output-s3-endpoint",
+                "https://s3.nangman.cloud",
+            ]
+            .into_iter()
+            .map(str::to_owned),
+        )
+        .unwrap_err()
+        .to_string();
+
+        assert!(err.contains("custom endpoint is unsupported"));
+        assert!(err.contains("AWS S3 with IAM"));
     }
 
     #[test]
