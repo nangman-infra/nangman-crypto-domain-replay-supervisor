@@ -16,8 +16,6 @@
       "target_mode": "replay",
       "input_bucket": "<structured-intel-l1-bucket>",
       "input_region": "ap-northeast-2",
-      "input_endpoint": null,
-      "input_force_path_style": false,
       "input_prefixes": ["structured-intel-packet/schema=structured_intel_packet_v1/"],
       "input_suffixes": [".json", ".jsonl"],
       "max_keys_per_prefix": 10000,
