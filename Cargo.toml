@@ -6,7 +6,7 @@ license = "MIT"
 rust-version = "1.94"
 
 [dependencies]
-intel-candidate-app = { git = "https://github.com/nangman-infra/nangman-crypto-intel-candidate.git", rev = "5033c3ec9e9d885c57c6c47ca02c288d4f177107" }
+intel-candidate-app = { git = "https://github.com/nangman-infra/nangman-crypto-intel-candidate.git", rev = "b56e5e0c386d64cd22ff5df1825f6fb298f87aab" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread"] }
