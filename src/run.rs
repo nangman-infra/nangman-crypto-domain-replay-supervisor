@@ -1,4 +1,18 @@
-use super::*;
+use crate::keys::{checksum_json, log_event};
+use crate::output::{write_local_outputs, write_s3_outputs};
+use crate::planning::{
+    ControlPlaneRunRecordInput, build_authority_migration_records, build_control_plane_run_record,
+    build_workflow_command, domain_matches_triggers, estimate_input_keys, validate_manifest,
+};
+use crate::types::{
+    Args, DomainReplayManifest, DomainReplaySupervisorReport, PRODUCER_APP, REPORT_SCHEMA_VERSION,
+    RunSummary, SkippedDomain,
+};
+use intel_candidate_app::error::{AppError, AppResult};
+use intel_candidate_app::hash::{sha256_hex, stable_id};
+use intel_candidate_app::time::now_ms;
+use serde_json::json;
+use std::fs;
 
 pub(crate) async fn run(args: Args) -> AppResult<RunSummary> {
     let manifest_bytes = fs::read(&args.manifest_file).map_err(|error| {
