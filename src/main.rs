@@ -3,6 +3,7 @@ use std::env;
 mod args;
 mod keys;
 mod output;
+mod path_validation;
 mod planning;
 mod run;
 mod types;
